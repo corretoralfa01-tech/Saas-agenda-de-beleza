@@ -1,0 +1,7 @@
+# pnpm 11 exige decisão explícita sobre quem pode rodar script de instalação.
+# Ambos apenas baixam/ligam binário opcional e são dependências de build
+# conhecidas — sem isso o `pnpm install` falha em CI (ERR_PNPM_IGNORED_BUILDS).
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
+  unrs-resolver: true

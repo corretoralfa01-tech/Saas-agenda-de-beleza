@@ -1,0 +1,56 @@
+import { type ClassValue, clsx } from "clsx";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * A escala tipográfica do produto usa o namespace `text-*` (idiomático no
+ * Tailwind v4, onde ela nasce de `--text-*`). Sem avisar o tailwind-merge, ele
+ * confunde `text-label` com uma classe de COR e descarta a cor que vier junto:
+ * `bg-accent text-white text-label` perdia o `text-white` e o botão primário
+ * ficava com texto escuro sobre bordeaux (2:1 de contraste).
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [
+        {
+          text: [
+            "display",
+            "entity",
+            "title",
+            "metric",
+            "card",
+            "body",
+            "label",
+            "caption",
+            "meta",
+            "section",
+            // Escala da landing pública. Esquecer um nome aqui não quebra
+            // build, tipo nem lint: a manchete simplesmente renderiza em 14px,
+            // ou perde a cor, dependendo da ordem das classes.
+            "hero",
+            "section-title",
+            "lede",
+            "stat",
+            "quote",
+            "eyebrow",
+            // Escala do agendamento público. Mesmo risco, e aqui ele cai em
+            // cima de quem paga: `text-house` confundido com cor derruba o
+            // `text-white` do chip de dia selecionado.
+            "house",
+            "ask",
+            // O nome da casa sobre a laca e o preço da carta. Esquecidos aqui,
+            // `text-fachada text-white` perde o branco e o nome da clínica sai
+            // em tinta escura sobre o esmalte escuro — ilegível, sem erro de
+            // build, de tipo nem de lint.
+            "fachada",
+            "price",
+          ],
+        },
+      ],
+    },
+  },
+});
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}

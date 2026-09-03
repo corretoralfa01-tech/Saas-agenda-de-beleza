@@ -1,0 +1,799 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens — direção visual da referência aprovada pelo dono:
+   canvas lavanda muito claro, cards brancos com canto largo e sombra suave,
+   superfícies de marca em roxo, acento ameixa e badges pastel.
+
+   Todo par texto/fundo abaixo foi medido: nada abaixo de 4.5:1.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --color-surface: #f8f6fb;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f4f0f8;
+
+  /* 13.4:1 · 5.1:1 · 4.8:1 sobre o canvas */
+  --color-ink: #2d203b;
+  --color-ink-secondary: #675a73;
+  --color-ink-tertiary: #766a80;
+
+  --color-line: #ece6f1;
+  --color-line-strong: #d9cfe2;
+
+  /* A referência fornece a família #9966CC → #8744CD. A ação primária usa uma
+     leitura um pouco mais profunda para manter texto branco com contraste AA. */
+  --color-accent: #7437b7;
+  --color-accent-hover: #622a9f;
+  --color-accent-soft: #f1e8fa;
+
+  --color-brand-from: #8744cd;
+  --color-brand-to: #622a9f;
+
+  --color-positive: #0b7a5e;
+  --color-positive-soft: #e6f7f2;
+  --color-attention: #8a5a07;
+  --color-attention-soft: #fdf3e2;
+  --color-danger: #b7333a;
+  --color-danger-soft: #fdeded;
+  --color-info: #7437b7;
+  --color-info-soft: #f1e8fa;
+
+  /* Cantos largos e controles em pílula, como na referência */
+  --radius-control: 8px;
+  --radius-pill: 999px;
+  --radius-card: 16px;
+  --radius-overlay: 20px;
+
+  /* Escala tipográfica. Fora dela não existe tamanho de texto no produto. */
+  --text-display: 26px;
+  --text-display--line-height: 34px;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-entity: 22px;
+  --text-entity--line-height: 30px;
+  --text-entity--font-weight: 700;
+  --text-entity--letter-spacing: -0.015em;
+
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-title--font-weight: 700;
+  --text-title--letter-spacing: -0.015em;
+
+  --text-metric: 24px;
+  --text-metric--line-height: 30px;
+  --text-metric--font-weight: 700;
+
+  --text-card: 16px;
+  --text-card--line-height: 22px;
+  --text-card--font-weight: 600;
+
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-body--font-weight: 400;
+
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-label--font-weight: 500;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 400;
+
+  --text-meta: 11px;
+  --text-meta--line-height: 16px;
+  --text-meta--font-weight: 400;
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--font-playfair), Georgia, serif;
+
+  --ease-out-quint: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* -------------------------------------------------------------------------
+     Landing pública — a "noite" da marca.
+
+     REGRA QUE MANDA AQUI: esta seção só ADICIONA nomes. Nenhum token do produto
+     (surface, ink, accent, line) é redefinido sob escopo. Redefinir seria o
+     vetor de vazamento real: todo componente compartilhado renderizado dentro
+     da landing recoloriria em silêncio e os contrastes medidos acima iriam para
+     o lixo.
+
+     Os roxos-noite saem do MESMO matiz do ink, então o site escuro e o
+     produto claro são a mesma marca em dois horários, não dois produtos.
+     Contrastes medidos sobre #160e20.
+     ------------------------------------------------------------------------- */
+  --color-night: #160e20;
+  --color-night-raised: #241632;
+  --color-night-sunken: #0e0915;
+  --color-night-ink: #faf7fd;
+  --color-night-ink-secondary: #cdbddd;
+  --color-night-ink-tertiary: #ad9abb;
+  --color-night-line: #3b284b;
+  --color-night-line-strong: #55366d;
+  /* O acento do produto é escuro demais como texto sobre a noite. Este é o
+     mesmo roxo relido para fundo escuro. Link, número e ícone em seção
+     escura usam este, nunca o accent. */
+  --color-accent-lift: #cda8f0;
+  /* Só aura e desfoque. Proibido como cor de texto. */
+  --color-night-glow: #9157cd;
+
+  /* Escala de display da landing. O produto para em 26px porque tela de
+     operação não tem manchete; página de venda tem. */
+  --text-hero: clamp(34px, 4.2vw, 54px);
+  --text-hero--line-height: 1.06;
+  --text-hero--font-weight: 800;
+  --text-hero--letter-spacing: -0.035em;
+
+  --text-section-title: clamp(28px, 3.6vw, 46px);
+  --text-section-title--line-height: 1.06;
+  --text-section-title--font-weight: 800;
+  --text-section-title--letter-spacing: -0.03em;
+
+  --text-lede: clamp(16px, 1.15vw, 19px);
+  --text-lede--line-height: 1.55;
+  --text-lede--font-weight: 400;
+  --text-lede--letter-spacing: -0.011em;
+
+  --text-stat: clamp(30px, 3vw, 40px);
+  --text-stat--line-height: 1;
+  --text-stat--font-weight: 800;
+  --text-stat--letter-spacing: -0.04em;
+
+  --text-quote: clamp(18px, 1.6vw, 22px);
+  --text-quote--line-height: 1.4;
+  --text-quote--font-weight: 600;
+  --text-quote--letter-spacing: -0.02em;
+
+  /* -------------------------------------------------------------------------
+     Agendamento público — a VITRINE.
+
+     Mesma licença que a landing tomou, pela mesma razão e com a mesma regra:
+     só adiciona nomes, não redefine nenhum token do produto.
+
+     Por que a escala do produto não serve aqui: `--text-display` para em 26px
+     porque tela de operação não tem manchete. Esta página tem — ela é o único
+     contato de quem marca com a clínica, e o nome da casa precisa entrar como
+     nome de casa, não como título de card.
+
+     `--text-house` sai na Playfair (`font-brand`), que já é a face do
+     logotipo: a assinatura da marca e o nome do salão passam a ser a mesma
+     voz. Todo o resto da página continua na Plus Jakarta.
+     ------------------------------------------------------------------------- */
+  --text-house: clamp(23px, 5.6vw, 31px);
+  --text-house--line-height: 1.12;
+  --text-house--font-weight: 600;
+  --text-house--letter-spacing: -0.015em;
+
+  /* A pergunta do passo ("O que você quer fazer?"). Um degrau abaixo do nome
+     da casa: quem manda na página é a clínica, não o formulário. */
+  --text-ask: clamp(19px, 4.4vw, 24px);
+  --text-ask--line-height: 1.24;
+  --text-ask--font-weight: 600;
+  --text-ask--letter-spacing: -0.02em;
+
+  /* -------------------------------------------------------------------------
+     O CARTÃO E O BALCÃO.
+
+     Diagnóstico do "está feia": #f8f6fb (surface) contra #ffffff
+     (surface-raised) mede 1,04:1 — fundo e conteúdo são literalmente a mesma
+     superfície, e nenhuma sombra conserta isso. Osso #fbf7f2 sobre balcão
+     #eee4d7 mede 1,13:1, mas com diferença de MATIZ (papel contra tampo), que
+     o olho lê como dois materiais.
+
+     REGRA QUE MANDA AQUI, a mesma da landing: só ADICIONA nomes. Nenhum
+     --color-surface / ink / accent / line é redefinido, em nenhum seletor. A
+     troca do chão é por classe e `body:has()`, nunca por redefinição.
+     ------------------------------------------------------------------------- */
+  --color-cartao: #fbf7f2;
+  --color-cartao-sunken: #f4ece1;
+  /* Fio de DESENHO — separador, guia pontilhada, picote. Mede 1,37:1 contra o
+     cartão: não serve para texto e não serve como única fronteira de controle. */
+  --color-cartao-linha: #e0d4c2;
+  /* Fio de CONTROLE — a borda de chip de dia, chip de horário, placa e campo.
+     A fronteira visual de um controle precisa de 3:1 (WCAG 1.4.11), e o fio de
+     desenho dava 1,37: quem enxerga pouco via retângulos flutuando sem borda.
+     Medido nas três superfícies: 3,53 no cartão, 3,22 na placa rebaixada,
+     3,00 no balcão. É o tom mais CLARO que passa nas três — mais escuro que
+     isso vira grade de planilha. */
+  --color-cartao-fio: #8e817a;
+  --color-balcao: #eee4d7;
+
+  /* A laca da CASA. Este valor é só o padrão (Ameixa Noturna): o tom real é
+     pintado por clínica em `style={{ "--color-laca": … }}`, a partir de
+     `lacaDe(organizationName)`. Sobrescrever um token NOVO sob escopo é
+     permitido; sobrescrever um do produto não é. */
+  --color-laca: #331a3f;
+
+  /* O nome da casa sobre a laca. Token NOVO e não um retoque em `--text-house`:
+     `house` também pinta a data do bilhete, e a 44px "Quinta-feira, 28 de
+     agosto" sai em três linhas e estoura o papel picotado — a única tela que
+     já funcionava. */
+  --text-fachada: clamp(23px, 5.6vw, 44px);
+  --text-fachada--line-height: 1.1;
+  --text-fachada--font-weight: 600;
+  --text-fachada--letter-spacing: -0.015em;
+
+  /* O preço. Único peso 800 da página, e existe para uma coisa só: preço de
+     lista e valor do bilhete. Em 16px/600 — o tamanho do NOME do serviço — os
+     dois empatam e a cliente lê a linha duas vezes para saber qual é qual.
+     Nome em ASCII de propósito: "--text-preço" passaria batido pelo regex do
+     design-tokens.test.ts e o twMerge o trataria como cor, em silêncio. */
+  --text-price: 20px;
+  --text-price--line-height: 24px;
+  --text-price--font-weight: 800;
+  --text-price--letter-spacing: -0.02em;
+
+  --animate-passo: passo-in 260ms var(--ease-out-quint) backwards;
+  --animate-postica-in: postica-in 300ms var(--ease-out-quint) backwards;
+
+  --animate-rise-in: rise-in 700ms var(--ease-out-quint) backwards;
+  --animate-fade-in: fade-in 600ms var(--ease-out-quint) backwards;
+  --animate-mockup-in: mockup-in 1100ms var(--ease-out-quint) backwards;
+}
+
+:root {
+  /* Card ganha corpo por sombra suave, como na referência */
+  --shadow-card: 0 2px 12px rgb(62 36 81 / 0.06), 0 1px 2px rgb(62 36 81 / 0.04);
+  --shadow-card-hover: 0 10px 28px rgb(74 43 96 / 0.11);
+  --shadow-overlay: 0 20px 50px rgb(45 24 61 / 0.18), 0 4px 12px rgb(45 24 61 / 0.08);
+  --shadow-sticky: 0 2px 10px rgb(45 24 61 / 0.08);
+  /* Relevo da ação primária. Estava cravado em button.tsx como
+     rgb(37 96 214 / 0.28) — um azul sobrevivente do tema anterior, que acendia
+     um halo frio embaixo de cada botão roxo. Mesma família das sombras acima. */
+  --shadow-action: 0 2px 8px rgb(74 43 96 / 0.28);
+
+  /* Degraus do funil da agenda, do topo (mais aberto) para a base (mais
+     fechado). Moram aqui e não no .tsx porque cor cravada em componente é cor
+     que some do inventário do tema: ninguém a encontra quando a marca muda.
+
+     A rampa original (#9966cc … #712fb5) foi escurecida na mesma matiz porque
+     o rótulo dentro da barra é BRANCO: os três primeiros degraus mediam 4,10,
+     4,41 e 4,72:1 e o gradiente de 87% derrubava a ponta esquerda para 3,38:1.
+     Agora o degrau mais claro parte de 4,85:1 e a rampa fecha em 8,30:1. */
+  --funnel-step-1: #8f56c7;
+  --funnel-step-2: #894cc7;
+  --funnel-step-3: #8342c7;
+  --funnel-step-4: #7c39c2;
+  --funnel-step-5: #7532bb;
+  --funnel-step-6: #692ca9;
+
+  --brand-gradient: linear-gradient(170deg, var(--color-brand-from) 0%, var(--color-brand-to) 100%);
+
+  /* agenda: 15 minutos = 14px */
+  --slot-height: 14px;
+
+  /* A flecha do sorriso. NÃO cresce com a largura: com `preserveAspectRatio`
+     em "none" e altura fixa, o arco ACHATA sozinho de 390 para 1440px — flecha
+     proporcional numa tela larga viraria caricatura. */
+  --sorriso: 14px;
+  --rail-width: 300px;
+}
+
+@layer base {
+  /* Precisa estar em @layer base: sem layer, esta regra vence as utilities do
+     Tailwind e anula todo border-line-strong e focus:border-accent. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* -------------------------------------------------------------------------
+     Superfície escura da landing.
+
+     `body:has()` e não só o wrapper: pintar apenas o wrapper deixa o branco do
+     body aparecer no overscroll do iOS e em página mais curta que a viewport.
+
+     As três regras precisam estar DENTRO de @layer base. Fora dele venceriam as
+     utilities do Tailwind, que é exatamente o bug documentado no topo deste
+     arquivo.
+     ------------------------------------------------------------------------- */
+  body:has([data-surface="night"]) {
+    background-color: var(--color-night);
+    color-scheme: dark;
+  }
+
+  /* Sem isto, toda borda dentro da landing herda o #e8edf5 da regra universal
+     lá em cima e vira uma malha de fios claros sobre o azul-noite. */
+  [data-surface="night"] *,
+  [data-surface="night"] ::before,
+  [data-surface="night"] ::after {
+    border-color: var(--color-night-line);
+  }
+
+  [data-surface="night"] :focus-visible {
+    outline-color: var(--color-accent-lift);
+  }
+
+  /* O chão da vitrine. Mesmo padrão da landing e pela mesma razão: pintar só o
+     wrapper deixa o lavanda do body aparecer no overscroll do iOS e em página
+     mais curta que a janela — que é exatamente o caso da clínica com um
+     serviço só. Isto define uma PROPRIEDADE; não redefine token nenhum. */
+  body:has([data-surface="cartao"]) {
+    background-color: var(--color-balcao);
+  }
+
+  /* Sem isto, toda borda dentro da vitrine herda o fio claro da regra universal
+     e corta o osso com risco cinza. */
+  [data-surface="cartao"] *,
+  [data-surface="cartao"] ::before,
+  [data-surface="cartao"] ::after {
+    border-color: var(--color-cartao-fio);
+  }
+
+  /*
+    O foco sobre a laca.
+
+    O anel padrão é a ameixa do produto, e sobre o esmalte escuro ela mede
+    2,19:1 — quem navega por teclado não enxerga onde está. Mesmo problema, e
+    mesma solução, da landing escura: um tom da própria marca relido para fundo
+    escuro, que aqui mede 7,69:1.
+
+    `outline-offset` negativo porque o cabeçalho é recortado pelo sorriso: com
+    o deslocamento positivo padrão, o anel ficava CORTADO em três lados e
+    aparecia como dois riscos soltos.
+  */
+  [data-surface="cartao"] header :focus-visible {
+    outline-color: var(--color-accent-lift);
+    outline-offset: -3px;
+  }
+
+  [data-surface="night"] ::selection {
+    background-color: color-mix(in oklab, var(--color-accent-lift) 30%, transparent);
+    color: var(--color-night-ink);
+  }
+
+  /* Estado inicial dos blocos que entram por rolagem. Fica no CSS, e não em
+     estado do React, por dois motivos: `prefers-reduced-motion` consegue
+     anulá-lo sem provocar um segundo render da página inteira, e o conteúdo
+     continua visível se o JavaScript falhar — que é o pior caso possível numa
+     página de vendas. Dentro de @layer base para continuar perdendo para as
+     utilities, como toda regra deste arquivo. */
+  [data-reveal="escondido"] {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+/* Rótulo de seção */
+@utility text-section {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-secondary);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+@utility shadow-sticky {
+  box-shadow: var(--shadow-sticky);
+}
+
+@utility shadow-action {
+  box-shadow: var(--shadow-action);
+}
+
+/* Gradiente da marca — barra lateral e superfícies de destaque */
+@utility bg-brand {
+  background-image: var(--brand-gradient);
+}
+
+/* Rótulo de seção da landing: caixa alta pequena com tracking aberto. */
+@utility text-eyebrow {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+@utility shadow-hero {
+  box-shadow:
+    0 40px 90px -20px rgb(3 6 20 / 0.7),
+    0 0 0 1px var(--color-night-line-strong);
+}
+
+@utility shadow-lift {
+  box-shadow: 0 18px 40px -18px rgb(3 6 20 / 0.6);
+}
+
+/**
+ * Borda picotada do bilhete de confirmação.
+ *
+ * O recorte é uma MÁSCARA e não dois pseudo-elementos pintados da cor do
+ * fundo: o fundo da página tem um brilho radial no canto, então círculos
+ * "da cor do fundo" só coincidem no meio da tela e denunciam a gambiarra nas
+ * bordas. A máscara tira alfa de verdade, e por isso o relevo do bilhete
+ * precisa vir de `drop-shadow` no elemento de fora — `box-shadow` seria
+ * recortado junto e o papel perderia o volume exatamente onde ele importa.
+ *
+ * Ladrilho de 26px com um furo de raio 9 na base: repete-se sozinho em
+ * qualquer largura, sem depender da altura do conteúdo (que varia com o nome
+ * do serviço e o endereço da unidade).
+ */
+@utility picote {
+  --furo: radial-gradient(circle 9px at 13px 100%, transparent 98%, #000 100%);
+  -webkit-mask-image: var(--furo);
+  -webkit-mask-size: 26px 100%;
+  -webkit-mask-repeat: repeat-x;
+  mask-image: var(--furo);
+  mask-size: 26px 100%;
+  mask-repeat: repeat-x;
+}
+
+/** Faixa de dias: rola na horizontal sem a barra atravessar os cartões. */
+@utility trilha {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/**
+ * O GRÃO DA LIXA.
+ *
+ * `absolute` e sempre ATRÁS do conteúdo. Como `fixed` com `multiply` ele
+ * multiplicaria sobre a janela inteira — barra fixa e botão de confirmar
+ * incluídos, que são justo os dois alvos que não podem perder meio ponto de
+ * contraste. Aqui ele só encontra o fundo do próprio elemento.
+ *
+ * `stitchTiles='stitch'` não é enfeite: sem ele a emenda do ladrilho de 180px
+ * aparece como grade. Escurecimento efetivo de ~2,5%.
+ *
+ * Quem usa `grao` PRECISA ter `position: relative; isolation: isolate`, e o
+ * conteúdo precisa subir para `relative z-[1]`.
+ */
+@utility grao {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23g)' opacity='0.10'/></svg>");
+    background-size: 180px 180px;
+  }
+}
+
+/**
+ * A LACA COMO MATERIAL, e não como cor chapada.
+ *
+ * Camada 1: a luz atravessando esmalte molhado — é a que a varredura anima.
+ * Camada 2: as PINCELADAS, passadas de 96° a 1,6% de branco. Ninguém as
+ *           enxerga conscientemente e elas respondem por quase toda a sensação
+ *           de "isto foi pintado". O período foi de 9px para 17px depois de
+ *           medir na tela: a 2,8% e 9px a laca lia como tecido canelado, não
+ *           como esmalte.
+ * Camada 3: a profundidade do fundo do vidro.
+ *
+ * Todas CLAREIAM o fundo, e é por isso que o texto secundário sobre a laca é
+ * branco a 80% e não a 74%: no pior empilhamento medido, o 74% cai para 4,30:1
+ * e reprova.
+ */
+@utility laca {
+  background-color: var(--color-laca);
+  background-image:
+    linear-gradient(104deg, transparent 18%, rgb(255 255 255 / 0.12) 34%,
+                    rgb(255 255 255 / 0.03) 46%, transparent 58%),
+    repeating-linear-gradient(96deg, rgb(255 255 255 / 0.016) 0 2px, transparent 2px 17px),
+    radial-gradient(130% 90% at 22% 0%, rgb(255 255 255 / 0.08) 0%, transparent 62%);
+  background-size: 148% 100%, auto, auto;
+  background-position-x: 0, 0, 0;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+
+/**
+ * A LINHA DO SORRISO — o arco raso onde a laca acaba e o cartão começa.
+ *
+ * Numa francesinha, a fronteira entre o esmalte e a ponta livre não é reta: é
+ * um arco raso, e no ofício ele se chama linha do sorriso. Aqui esse arco é a
+ * divisa ESTRUTURAL da página — o plano esmaltado não termina numa borda reta,
+ * como todo cabeçalho colorido do mundo: termina num sorriso.
+ *
+ * É `border-radius` no PRÓPRIO cabeçalho, e não um SVG encostado embaixo. A
+ * primeira versão era um `<svg>` com `fill: var(--color-laca)`: a laca do SVG
+ * saía chapada enquanto a do cabeçalho tem três camadas de brilho por cima, e
+ * a emenda apareceu na tela como uma faixa escura atravessando a página.
+ * Recortando o elemento, TODAS as camadas são cortadas juntas e não há emenda
+ * possível.
+ *
+ * O raio é elíptico e assimétrico — 50% na horizontal contra `--sorriso` na
+ * vertical — e é isso que dá o ombro comprido e o fundo curto do sorriso real.
+ * Raio circular desenharia duas quinas arredondadas, que é outra coisa.
+ *
+ * O arco aparece DUAS vezes na página inteira, e a escassez é o que o mantém
+ * sendo assinatura: aqui e no pé da faixa do bilhete.
+ */
+@utility sorriso {
+  border-bottom-left-radius: 50% var(--sorriso);
+  border-bottom-right-radius: 50% var(--sorriso);
+}
+
+/**
+ * A ENTRADA DA LACA — o esmalte sendo aplicado.
+ *
+ * Dois movimentos num só, e é por isso que existe um utilitário em vez de duas
+ * classes: cada `animate-*` do Tailwind escreve a propriedade `animation`
+ * inteira, então a segunda apagaria a primeira.
+ *
+ * 1. A PINCELADA: o plano é revelado da esquerda para a direita, que é o gesto
+ *    real de quem passa esmalte. 560ms, com um respiro de 140ms para a página
+ *    assentar antes.
+ * 2. A VARREDURA: a luz correndo pelo esmalte molhado logo depois.
+ *
+ * Roda UMA vez, na abertura. Não é presa à rolagem e não repete na troca de
+ * passo: gesto repetido vira tique.
+ */
+@utility laca-entrada {
+  animation:
+    pincelada 560ms cubic-bezier(0.22, 0.61, 0.36, 1) 140ms backwards,
+    varredura 900ms var(--ease-out-quint) 220ms backwards;
+}
+
+/**
+ * A GRADE DO MÊS SE PREENCHE EM VARREDURA.
+ *
+ * Trocar de mês troca 42 células de uma vez. Sem escalonamento a grade
+ * inteira pisca e o olho perde a referência do que mudou; com um atraso
+ * proporcional à posição, o mês entra da primeira semana para a última, no
+ * mesmo sentido em que se lê, e a mudança se explica sozinha.
+ *
+ * O atraso máximo é 210ms — o teto é o que separa "a página respondeu" de
+ * "a página está lenta". Espera `--atraso` no style.
+ */
+@utility dia-entrada {
+  animation: dia-surge 240ms var(--ease-out-quint) var(--atraso, 0ms) backwards;
+}
+
+@keyframes dia-surge {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+/**
+ * A UNHA POSTIÇA — o átomo que aposentou a gota de 12px.
+ *
+ * `border-radius` elíptico assimétrico (topo redondo, base quase reta), a poça
+ * de esmalte na base por sombra interna e a sombra de contato de 1px que a cola
+ * no cartão. É uma FORMA que lê como objeto sem representar um: nada de lúnula
+ * desenhada, nada de ilustração. Material e geometria envelhecem bem.
+ *
+ * Espera `--esmalte` e `--aro` pintados no style. Três escalas e só três:
+ * 28×38 na placa de serviço, 22×30 no recibo, 14×19 no rótulo de categoria.
+ */
+@utility postica {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 13px 13px 6px 6px / 17px 17px 5px 5px;
+  background-color: var(--esmalte);
+  box-shadow:
+    inset 0 0 0 1px var(--aro),
+    inset 0 -6px 10px -6px rgb(0 0 0 / 0.30),
+    0 1px 2px rgb(51 26 63 / 0.14);
+}
+
+/* O brilho do esmalte. Só acima de 22px de largura: um brilho de 3px não lê
+   como vidro, lê como sujeira. */
+@utility postica-brilho {
+  &::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    width: 7px;
+    height: 15px;
+    border-radius: 999px;
+    transform: rotate(14deg);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0));
+  }
+}
+
+/** Guia de carta de preços: liga a duração ao preço, como no cardápio. */
+@utility guia {
+  flex: 1 1 0%;
+  height: 0;
+  margin-inline: 8px;
+  border-bottom: 2px dotted var(--color-cartao-linha);
+}
+
+/**
+ * A pilha do balcão.
+ *
+ * `safe` é obrigatório: com 40 serviços em 6 categorias o cartão fica mais alto
+ * que a janela, e `center` puro corta o TOPO — levando junto a laca e o nome da
+ * casa. Onde `safe` não for suportado, o respiro e a rolagem do documento
+ * seguram o pior caso.
+ */
+@utility pilha-balcao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  @media (width >= 48rem) {
+    justify-content: safe center;
+    padding-block: 48px;
+  }
+}
+
+/** A sombra de contato. Sem ela o cartão flutua num nada; com ela ele está
+    APOIADO — e objeto pequeno apoiado em tampo grande é composição. */
+@utility sombra-contato {
+  width: 62%;
+  height: 26px;
+  margin: -12px auto 0;
+  border-radius: 999px;
+  background: rgb(51 26 63 / 0.16);
+  filter: blur(18px);
+}
+
+@keyframes passo-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* O esmalte é APLICADO da esquerda para a direita, que é o gesto real. */
+@keyframes pincelada {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* A luz correndo pelo esmalte quando a página abre. Uma vez, e só uma. */
+@keyframes varredura {
+  from { background-position-x: -24%, 0, 0; }
+  to   { background-position-x: 0, 0, 0; }
+}
+
+@keyframes postica-in {
+  from { transform: scale(1.34); }
+  to   { transform: scale(1); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* O print nunca frontal: entra girando até a posição de repouso.
+   O `backwards` do token cobre o estado ANTES da animação; o estado DEPOIS é o
+   CSS do próprio elemento — por isso a inclinação final precisa existir como
+   regra, senão o print volta a ficar reto assim que a animação termina. */
+@utility mockup-tilt {
+  transform-style: preserve-3d;
+  /* Só a partir do desktop: no celular a rotação corta a borda esquerda do
+     print, que é justamente onde fica a navegação do produto. */
+  @media (width >= 64rem) {
+    transform: perspective(1800px) rotateY(-7deg) rotateX(4deg);
+  }
+}
+
+@keyframes mockup-in {
+  from { opacity: 0; transform: perspective(1800px) rotateY(-14deg) rotateX(8deg) scale(0.97); }
+  to { opacity: 1; transform: perspective(1800px) rotateY(-7deg) rotateX(4deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Quem pede menos movimento também não precisa do print torto. */
+  .mockup-tilt { transform: none; }
+
+  /* A duração já vai a zero pela regra global, mas o estado inicial `backwards`
+     ainda deixa a faixa piscar antes de assentar. */
+  .laca-entrada { clip-path: none !important; }
+
+  /* Aqui a regra global não basta: o ATRASO sobrevive a ela, e uma célula com
+     `backwards` fica invisível os 210ms inteiros antes de aparecer de estalo —
+     que é exatamente o piscar que quem desliga movimento está evitando. */
+  .dia-entrada {
+    animation: none !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+time,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-tertiary);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.animate-overlay-in { animation: overlay-in 180ms var(--ease-out-quint); }
+.animate-sheet-in { animation: sheet-in 240ms var(--ease-out-quint); }
+.animate-dialog-in { animation: dialog-in 200ms var(--ease-out-quint); }
+
+@media print {
+  [data-print="hide"] { display: none !important; }
+  body { background: #fff; }
+}
