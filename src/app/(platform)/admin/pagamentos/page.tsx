@@ -10,6 +10,7 @@ import { requirePlatformAdmin } from "@/server/platform-auth";
 import {
   HOTMART_EVENT_MAP,
   HOTMART_WEBHOOK_PATH,
+  HUBLA_EVENT_MAP,
   HUBLA_WEBHOOK_PATH,
   KIND_WITH_WEBHOOK,
   KIWIFY_WEBHOOK_PATH,
@@ -229,10 +230,11 @@ export default async function PaymentsPage() {
 
         <SimpleWebhookSection
           title="Webhook da Hubla"
-          panelInstructions='No painel da Hubla, abra o produto e cole este endereço em Configurações → Webhooks. O token que a Hubla mostrar precisa ser salvo no provedor "Hubla" acima.'
+          panelInstructions="No painel da Hubla, vá em Integrações → Webhook, cole este endereço e marque os eventos que interessam. O token de autenticação (aba Authentication, header x-hubla-token) precisa ser salvo no provedor “Hubla” acima."
           provider={hubla}
           url={webhookUrl(HUBLA_WEBHOOK_PATH)}
           appUrlConfigured={Boolean(configuredBase)}
+          eventMap={HUBLA_EVENT_MAP}
         />
 
         <SimpleWebhookSection
@@ -321,52 +323,84 @@ function SimpleWebhookSection({
   provider,
   url,
   appUrlConfigured,
+  eventMap,
 }: {
   title: string;
   panelInstructions: string;
   provider: PaymentProviderView | null;
   url: string;
   appUrlConfigured: boolean;
+  /** Quando existe, mostra a tabela de eventos reconhecidos ao lado — só a Hubla tem isso hoje. */
+  eventMap?: Record<string, { description: string }>;
 }) {
   const pronto = Boolean(provider?.enabled && provider.hasWebhookToken);
+
+  const card = (
+    <Card className="space-y-3 px-5 py-4">
+      <p className="text-body text-ink-secondary">{panelInstructions}</p>
+
+      <WebhookUrlBox url={url} appUrlConfigured={appUrlConfigured} />
+
+      <p className="flex items-start gap-1.5 text-caption">
+        {!provider ? (
+          <>
+            <TriangleAlert className="mt-px size-3.5 shrink-0 text-ink-tertiary" aria-hidden />
+            <span className="text-ink-tertiary">
+              Provedor ainda não cadastrado — cadastre-o acima antes de colar este endereço no
+              painel.
+            </span>
+          </>
+        ) : pronto ? (
+          <>
+            <CheckCircle2 className="mt-px size-3.5 shrink-0 text-positive" aria-hidden />
+            <span className="text-positive">
+              Provedor ligado e com token salvo: as entregas são aceitas e registradas — ainda sem
+              processar a assinatura (mesmo estágio da Hotmart, ver o aviso dela acima).
+            </span>
+          </>
+        ) : (
+          <>
+            <TriangleAlert className="mt-px size-3.5 shrink-0 text-attention" aria-hidden />
+            <span className="text-attention">
+              {provider.hasWebhookToken
+                ? "O token está salvo, mas o provedor está desligado: toda entrega é recusada com 401."
+                : "Sem o token salvo, toda entrega é recusada com 401."}
+            </span>
+          </>
+        )}
+      </p>
+    </Card>
+  );
+
+  if (!eventMap) {
+    return (
+      <section>
+        <h2 className="text-section">{title}</h2>
+        <div className="mt-3">{card}</div>
+      </section>
+    );
+  }
 
   return (
     <section>
       <h2 className="text-section">{title}</h2>
-      <Card className="mt-3 space-y-3 px-5 py-4">
-        <p className="text-body text-ink-secondary">{panelInstructions}</p>
-
-        <WebhookUrlBox url={url} appUrlConfigured={appUrlConfigured} />
-
-        <p className="flex items-start gap-1.5 text-caption">
-          {!provider ? (
-            <>
-              <TriangleAlert className="mt-px size-3.5 shrink-0 text-ink-tertiary" aria-hidden />
-              <span className="text-ink-tertiary">
-                Provedor ainda não cadastrado — cadastre-o acima antes de colar este endereço no
-                painel.
-              </span>
-            </>
-          ) : pronto ? (
-            <>
-              <CheckCircle2 className="mt-px size-3.5 shrink-0 text-positive" aria-hidden />
-              <span className="text-positive">
-                Provedor ligado e com token salvo: as entregas são aceitas e registradas — ainda sem
-                processar a assinatura (ver o aviso da Hotmart ao lado, a mesma regra vale aqui).
-              </span>
-            </>
-          ) : (
-            <>
-              <TriangleAlert className="mt-px size-3.5 shrink-0 text-attention" aria-hidden />
-              <span className="text-attention">
-                {provider.hasWebhookToken
-                  ? "O token está salvo, mas o provedor está desligado: toda entrega é recusada com 401."
-                  : "Sem o token salvo, toda entrega é recusada com 401."}
-              </span>
-            </>
-          )}
-        </p>
-      </Card>
+      <div className="mt-3 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        {card}
+        <Card className="px-5 py-4">
+          <p className="text-section">Eventos reconhecidos</p>
+          <dl className="mt-2 space-y-2.5">
+            {Object.entries(eventMap).map(([name, mapped]) => (
+              <div key={name}>
+                <dt className="font-mono text-caption text-ink">{name}</dt>
+                <dd className="text-caption leading-4 text-ink-secondary">{mapped.description}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-meta text-ink-tertiary">
+            Qualquer outro evento continua sendo guardado, marcado como não tratado.
+          </p>
+        </Card>
+      </div>
     </section>
   );
 }

@@ -31,10 +31,26 @@ type CycleKey = "monthly" | "quarterly" | "yearly";
 
 const CYCLE_LABEL: Record<CycleKey, string> = { monthly: "Mensal", quarterly: "Trimestral", yearly: "Anual" };
 const PERIOD_LABEL: Record<CycleKey, string> = { monthly: "por mês", quarterly: "por trimestre", yearly: "por ano" };
+
+/**
+ * TEMPORÁRIO — promoção de lançamento das 30 primeiras clientes.
+ *
+ * O checkout da Hubla cobra R$97 na adesão (primeiro pagamento, todo ciclo) e
+ * depois um valor promocional no mensal e no trimestral, válido só para as 30
+ * primeiras clientes; passado isso, a cobrança recorrente volta ao preço de
+ * tabela (o mesmo que já vem do banco em `plan.monthlyPriceCents` /
+ * `quarterlyPriceCents`). O anual não tem promoção.
+ *
+ * Remover a menção à promoção (e voltar para o texto fixo "Cobrado todo mês
+ * feito o mesmo lá, um por mês/trimestre.") quando a 31ª cliente assinar —
+ * não há como o site saber isso sozinho, é o Bruno quem avisa.
+ */
 const BILLED_LABEL: Record<CycleKey, (plan: PublicPlan) => string> = {
-  monthly: () => "Cobrado todo mês. Cancele quando quiser.",
-  quarterly: (plan) => `Cobrado ${formatBRL(plan.quarterlyPriceCents)} a cada 3 meses.`,
-  yearly: (plan) => `Cobrado ${formatBRL(plan.yearlyPriceCents)} uma vez por ano.`,
+  monthly: () =>
+    "R$97 na adesão, depois R$59,90/mês — promoção para as 30 primeiras clientes. Depois volta a R$97/mês.",
+  quarterly: () =>
+    "R$97 na adesão, depois R$179,00 a cada 3 meses — promoção para as 30 primeiras clientes. Depois volta a R$242/trimestre.",
+  yearly: (plan) => `R$97 na adesão, depois ${formatBRL(plan.yearlyPriceCents)} uma vez por ano.`,
 };
 
 type Props = {

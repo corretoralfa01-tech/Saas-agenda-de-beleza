@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { platformWebhookEvents } from "@/db/schema";
 import {
-  extractEventName,
-  extractExternalId,
+  extractHublaEventName,
+  extractHublaExternalId,
   extractWebhookToken,
+  processHublaEvent,
   providerForWebhook,
   touchProviderLastEvent,
   webhookTokenMatches,
@@ -18,16 +19,20 @@ export const dynamic = "force-dynamic";
  *
  * Mesmo desenho da rota da Hotmart (autenticar → gravar cru → responder 200
  * rápido) — ver os comentários de `src/app/api/webhooks/hotmart/route.ts` para
- * a razão de cada decisão. A diferença real é a autenticação: a convenção
- * exata da Hubla (nome do header, ou campo do corpo) ainda não foi conferida
- * contra uma conta de verdade, então `extractWebhookToken` tenta mais de um
- * lugar plausível em vez de travar num só. Recusa continua sendo 401 seco.
+ * a razão de cada decisão. Conferido contra a documentação oficial da Hubla
+ * (Central de Ajuda → Webhooks):
+ *
+ * - AUTENTICAÇÃO: token estático no header `x-hubla-token`, sem HMAC — mesmo
+ *   desenho do hottok da Hotmart, então a comparação por hash já servia.
+ * - DEDUPLICAÇÃO: `x-hubla-idempotency` identifica cada entrega; é o que vira
+ *   `external_id`, não um campo do corpo.
+ * - NOME DO EVENTO: campo `type` no corpo (ex.: "invoice.payment_succeeded"),
+ *   não `event`/`status` como na Hotmart.
  *
  * O processamento da assinatura é PENDENTE de propósito, como na Hotmart:
  * falta o mapa de produto/oferta da Hubla → plano daqui, sem o qual inventar a
  * assinatura viraria receita fantasma no gráfico de MRR. O payload fica
- * guardado inteiro, marcado como não processado, e reprocessável quando o
- * mapa e a operação de domínio existirem.
+ * guardado inteiro e reprocessável quando o mapa chegar.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -47,11 +52,8 @@ export async function POST(request: Request) {
   }
 
   const receivedAt = new Date();
-  const eventName = extractEventName(payload);
-  const externalId = extractExternalId(payload, rawBody);
-  const error = eventName
-    ? `Recebido e autenticado, mas o processamento de eventos da Hubla ainda não foi implementado (evento "${eventName}").`
-    : "Recebido e autenticado, mas sem nome de evento identificável — não dá para classificar.";
+  const eventName = extractHublaEventName(payload);
+  const externalId = extractHublaExternalId(request, payload, rawBody);
 
   const [logged] = await db
     .insert(platformWebhookEvents)
@@ -62,7 +64,6 @@ export async function POST(request: Request) {
       eventName,
       payload: payload as Record<string, unknown>,
       receivedAt,
-      error,
     })
     .onConflictDoNothing({
       target: [platformWebhookEvents.kind, platformWebhookEvents.externalId],
@@ -70,14 +71,23 @@ export async function POST(request: Request) {
     .returning({ id: platformWebhookEvents.id });
 
   if (!logged) {
-    // Reentrega do mesmo evento. Já está guardado: confirmar é o suficiente.
+    // Reentrega do mesmo evento (mesma `x-hubla-idempotency`). Já está
+    // guardado: confirmar é o suficiente.
     return NextResponse.json({ ok: true, duplicate: true });
   }
 
   try {
     await touchProviderLastEvent(provider.id, receivedAt);
-  } catch (err) {
-    console.error("hubla: falha ao marcar lastEventAt", err);
+  } catch (error) {
+    console.error("hubla: falha ao marcar lastEventAt", error);
+  }
+
+  // Hoje isto só classifica e anota o motivo de não ter processado. Ver o
+  // cabeçalho de src/server/services/hotmart.ts.
+  try {
+    await processHublaEvent({ eventId: logged.id, eventName, provider });
+  } catch (error) {
+    console.error("hubla: falha ao processar evento", error);
   }
 
   return NextResponse.json({ ok: true });

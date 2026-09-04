@@ -120,19 +120,24 @@ export function hottokMatches(storedHash: string | null, token: string | null): 
 export const webhookTokenMatches = hottokMatches;
 
 /**
- * Onde procurar o token de cada provedor na entrega — não é a mesma convenção
- * da Hotmart nos dois casos, e por isso a extração tenta mais de um lugar.
+ * Onde procurar o token de cada provedor na entrega.
  *
- * NÃO CONFIRMADO CONTRA O PAINEL REAL da Hubla e da Kiwify: até o dia em que
- * uma conta de verdade em cada um for ligada aqui, o nome exato do header ou
- * do campo pode vir diferente do que está abaixo. É por isso que a extração
- * tenta várias formas plausíveis em vez de travar numa só — e por isso a rota
- * de cada provedor GRAVA o payload inteiro mesmo quando a autenticação falha
- * seria arriscado demais; o que ela faz em vez disso é continuar recusando com
- * 401 até o token bater, que é a mesma postura da Hotmart.
+ * `x-hubla-token` é a convenção CONFIRMADA da Hubla (doc oficial: Central de
+ * Ajuda → Webhooks → Proteja seu endpoint — token estático, sem HMAC, mesmo
+ * desenho do hottok da Hotmart). Os nomes genéricos que seguem cobrem a
+ * Kiwify e qualquer outro provedor que venha depois, cuja convenção exata
+ * ainda não foi confirmada contra uma conta de verdade — por isso a extração
+ * tenta mais de um lugar plausível em vez de travar numa só. Recusa continua
+ * sendo 401 seco em qualquer caso.
  */
 export function extractWebhookToken(request: Request, payload: unknown): string | null {
-  const headerNames = ["x-webhook-token", "x-hub-token", "x-webhook-signature", "authorization"];
+  const headerNames = [
+    "x-hubla-token",
+    "x-webhook-token",
+    "x-hub-token",
+    "x-webhook-signature",
+    "authorization",
+  ];
   for (const name of headerNames) {
     const value = request.headers.get(name)?.trim();
     if (!value) continue;
@@ -151,6 +156,28 @@ export function extractWebhookToken(request: Request, payload: unknown): string 
     }
   }
 
+  return null;
+}
+
+/**
+ * Identidade da entrega da Hubla — `x-hubla-idempotency` é o identificador
+ * único de cada evento (doc oficial), mais confiável que tentar adivinhar um
+ * campo no corpo. Cai para `extractExternalId` (id do corpo, ou hash do corpo
+ * cru) quando o header não vem, para a rota não perder deduplicação por causa
+ * de um provedor que manda o header em falta.
+ */
+export function extractHublaExternalId(request: Request, payload: unknown, rawBody: string): string {
+  const idempotency = request.headers.get("x-hubla-idempotency")?.trim();
+  if (idempotency) return idempotency;
+  return extractExternalId(payload, rawBody);
+}
+
+/** `type` na Hubla, não `event`/`status` — por isso não reaproveita `extractEventName`. */
+export function extractHublaEventName(payload: unknown): string | null {
+  if (payload && typeof payload === "object") {
+    const type = (payload as Record<string, unknown>).type;
+    if (typeof type === "string" && type.trim()) return type.trim();
+  }
   return null;
 }
 
@@ -553,4 +580,101 @@ function hasProductPlanMap(config: unknown): boolean {
   if (!config || typeof config !== "object") return false;
   const map = (config as Record<string, unknown>).productPlanMap;
   return Boolean(map && typeof map === "object" && Object.keys(map).length > 0);
+}
+
+// ─── Hubla: mapa de eventos → operação do domínio ────────────────────────────
+
+/**
+ * O que cada evento da Hubla significa aqui dentro.
+ *
+ * Nomes e formato (`type: "invoice.payment_succeeded"`, versão `2.0.0`)
+ * conferidos contra a documentação oficial (Central de Ajuda da Hubla →
+ * Webhooks → Eventos). O resto da estrutura — `subscriptionEventKind` nulo
+ * onde depende do valor — segue a mesma régua de `HOTMART_EVENT_MAP` acima.
+ */
+export const HUBLA_EVENT_MAP: Record<
+  string,
+  { operation: HotmartOperation; subscriptionEventKind: string | null; description: string }
+> = {
+  "invoice.payment_succeeded": {
+    operation: "start_or_convert_subscription",
+    subscriptionEventKind: "created",
+    description: "Fatura paga: começa a assinatura, ou converte o teste que estava aberto.",
+  },
+  "assinatura.criada": {
+    operation: "start_or_convert_subscription",
+    subscriptionEventKind: "created",
+    description: "Assinatura criada na Hubla — chega antes da primeira fatura ser paga.",
+  },
+  "assinatura.ativada": {
+    operation: "confirm_subscription",
+    subscriptionEventKind: "renewed",
+    description: "Assinatura ativada (renovação confirmada). Não muda o valor da assinatura.",
+  },
+  "assinatura.desativada": {
+    operation: "cancel_subscription",
+    subscriptionEventKind: "canceled",
+    description: "Assinatura desativada na Hubla. MRR depois vai a zero.",
+  },
+  "assinatura.expirada": {
+    operation: "cancel_subscription",
+    subscriptionEventKind: "canceled",
+    description: "Assinatura expirada (fim do período sem renovar). MRR depois vai a zero.",
+  },
+  "invoice.payment_failed": {
+    operation: "cancel_subscription",
+    subscriptionEventKind: "past_due",
+    description: "Pagamento da fatura falhou. Marca a assinatura como inadimplente.",
+  },
+  "invoice.refunded": {
+    operation: "cancel_subscription",
+    subscriptionEventKind: "canceled",
+    description: "Fatura reembolsada. Encerra o acesso e zera o MRR.",
+  },
+};
+
+export function decideHublaEvent(eventName: string | null, provider: WebhookProvider): ProcessOutcome {
+  if (!eventName) {
+    return { processed: false, reason: "Entrega sem campo \"type\" — não dá para classificar." };
+  }
+
+  const mapped = HUBLA_EVENT_MAP[eventName];
+  if (!mapped) {
+    return {
+      processed: false,
+      reason: `Evento "${eventName}" não faz parte do mapa da Hubla tratado aqui.`,
+    };
+  }
+
+  if (!hasProductPlanMap(provider.config)) {
+    return {
+      processed: false,
+      reason:
+        `Mapa de produto→plano não configurado: sem ele não dá para saber a qual plano "${eventName}" ` +
+        "se refere. O payload está guardado inteiro e pode ser reprocessado depois.",
+    };
+  }
+
+  return {
+    processed: false,
+    reason: `Mapa de produto→plano existe, mas o processamento de "${eventName}" ainda não foi implementado.`,
+  };
+}
+
+export async function processHublaEvent(args: {
+  eventId: number;
+  eventName: string | null;
+  provider: WebhookProvider;
+}): Promise<ProcessOutcome> {
+  const outcome = decideHublaEvent(args.eventName, args.provider);
+
+  await db
+    .update(platformWebhookEvents)
+    .set({
+      processedAt: outcome.processed ? new Date() : null,
+      error: outcome.processed ? null : outcome.reason,
+    })
+    .where(eq(platformWebhookEvents.id, args.eventId));
+
+  return outcome;
 }
