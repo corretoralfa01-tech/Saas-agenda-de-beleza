@@ -117,10 +117,10 @@ function CycleColumns({
           <article
             key={cycleKey}
             className={cn(
-              "relative flex flex-col rounded-overlay border p-7 shadow-lift",
+              "relative flex flex-col rounded-overlay border p-7 shadow-lift transition-[transform,border-color] duration-200 ease-out-quint hover:-translate-y-1",
               emDestaque
-                ? "border-accent-lift/60 bg-night-raised"
-                : "border-night-line-strong bg-night-raised",
+                ? "border-accent-lift/60 bg-night-raised hover:border-accent-lift"
+                : "border-night-line-strong bg-night-raised hover:border-night-ink-tertiary",
             )}
           >
             {emDestaque ? (
